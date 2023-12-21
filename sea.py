@@ -7,16 +7,10 @@ def sea():
     # uper and lower bounds
     op = {'ub': 50.0, 'lb': -50.0}
 
-    gas = {'n_individuals': 16, 'generations': 100, 'p_m': 0.9, 'chaos_exp': 30.0,
+    gas = {'n_individuals': 100, 'generations': 100, 'p_m': 0.9, 'chaos_exp': 30.0,
            'variance_generations': 10, 'verbose': True, 'fIdx': {'fit': 0, 'ref': 1}}
 
     best = [0, 0, 0]
-
-    # --INITIALIZATION
-    variance_array = np.zeros(gas['n_individuals'])
-    queue = np.zeros(gas['variance_generations'])  # queue used to calculate the variance of the last 'variance_generations' generations best individuals
-    qIndex = 0
-    variance = 0
 
     # in case a funny user decides to have an odd number of individuals in the population...
     if gas['n_individuals'] % 2 != 0:
@@ -26,12 +20,20 @@ def sea():
     if gas['n_individuals'] <= 0:
         gas['n_individuals'] = 1
 
+    # --INITIALIZATION
+    variance_array = np.zeros(gas['n_individuals'])
+    queue = np.zeros(gas['variance_generations'])  # queue used to calculate the variance of the last 'variance_generations' generations best individuals
+    qIndex = 0
+    variance = 0
+
+
     # --RANDOM INITIALIZATION
     pop = initialize_random_population(op, gas)
 
     # --EVALUATION
     fit_array_P = evaluate(pop, gas)
 
+    # plot the first population
     plot_pop(pop, 'bo', True, op)
 
     # --ITERATIONS
@@ -54,6 +56,7 @@ def sea():
             fit_array_O = evaluate(offspring, gas)
 
             # --SURVIVOR
+            # TODO: ask fabio, why is this not survivor_elitism?
             pop, fit_array_P = survivor_non_elitism(offspring, fit_array_O, op, gas)
 
         # calculate variance over the last 'varianceGen' generations
@@ -72,14 +75,12 @@ def sea():
         if gas['verbose']:
             print(f'{gen})\t{best}')
 
-        plot_pop(pop, 'bo', False, op)
+        # plot_pop(pop, 'bo', False, op)  !!!!
 
         # stop if the variance is 0.0000
         if round(variance, 3) == 0 and gen > gas['variance_generations']:
             break
 
-    # place a breakpoint here as you run the algorithm to pause
-    # and check how the individuals are evolving by plotting the best one with 'drawProblem2D(decodeIndividual(pop(:,:,1)))'
     return best
 
 def plot_pop(pop, style, is_new, op:dict):
@@ -92,17 +93,14 @@ def plot_pop(pop, style, is_new, op:dict):
     plt.ylim([op['lb'], op['ub']])
     plt.show()
 
-def plot_mat_pool(pop, mat_pool, gas:dict):
-    plt.figure()
-    for i in range(gas['n_individuals']):
-        plt.plot(pop[mat_pool[i], 0], pop[mat_pool[i], 1], 'go')
-    plt.plot(1, 1, 'r+')
-    plt.show()
 
 def initialize_random_population(op:dict, gas:dict) -> np.ndarray:
 
+    # IMPORTANT: population is a matrix of size (n_individuals x n_dimensions)
     pop = np.zeros((gas['n_individuals'], 2))
     for i in range(gas['n_individuals']):
+        # fill the population with random values
+        # TODO: ask fabio, this will work for only 2 dimensions, right? what should we do for more dimensions?
         pop[i, 0] = (op['ub'] - op['lb']) * np.random.rand() + op['lb']
         pop[i, 1] = (op['ub'] - op['lb']) * np.random.rand() + op['lb']
     return pop
@@ -112,12 +110,15 @@ def rosenbrock(x1, x2):
 
 def evaluate(pop:np.array, gas:dict) -> np.ndarray:
 
-    s = pop.shape[0]
+    # TODO: ask fabio, why is this a matrix of size (n_individuals x 3)? what are the 3 columns?
+    s = pop.shape[0]   # TODO: ask fabio, is population size always equal to n_individuals? or it might change over time?
     fit_array = np.zeros((s, 3))
     for i in range(s):
         x1, x2 = pop[i, 0], pop[i, 1]
-        fit_array[i, gas['fIdx']['fit']] = rosenbrock(x1, x2)  # objective function
-        fit_array[i, gas['fIdx']['ref']] = i + 1
+        # store the fitness in the first column
+        fit_array[i, 0] = rosenbrock(x1, x2)  # objective function
+        # store the reference in the second column
+        fit_array[i, 1] = i + 1
 
     return fit_array
 
@@ -126,7 +127,6 @@ def generate_offspring_with_symmetry(pop:np.ndarray, op:dict, gas:dict) -> np.nd
     off_pop = np.zeros((0, 2))
     for i in range(gas['n_individuals']):
         off = symmetry(pop[i, :])
-        print(f"pop[i, :]: {pop[i, :]}")
         off_pop = np.vstack((off_pop, off))
 
     for i in range(off_pop.shape[0]):
