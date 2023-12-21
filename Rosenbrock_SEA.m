@@ -18,13 +18,7 @@ function [best] = sea()
     gas.fIdx.ref = 2;
     
     best = [0,0,0];
-    
-    %--INITIALIZATION 
-    variance_array= zeros(1,gas.n_individuals);
-    queue=zeros(1,gas.variance_generations);   % queue used to calculate the variance of the last 'variance_generations' generations best individuals
-    qIndex = 1;
-    variance = 0;
-    
+
     % in case a funny user decides to have an odd number of idividuals in the population...
     if mod(gas.n_individuals,2) ~= 0
         gas.n_individuals = gas.n_individuals + 1;
@@ -35,6 +29,12 @@ function [best] = sea()
         gas.n_individuals = 1;
     end
     
+    %--INITIALIZATION 
+    variance_array = zeros(1, gas.n_individuals);
+    queue = zeros(1, gas.variance_generations);   % queue used to calculate the variance of the last 'variance_generations' generations best individuals
+    qIndex = 1;
+    variance = 0;
+    
     %--RANDOM INITIALIZATION
     pop = initializeRandomPopulation();  
 
@@ -44,7 +44,7 @@ function [best] = sea()
     plotPop(pop,'bo',true);
    
     %--ITERATIONS
-    for gen=1:1:gas.generations
+    for gen = 1:1:gas.generations
 
         if (mod(gen,2) == 1)
             % do symmetry
@@ -72,8 +72,8 @@ function [best] = sea()
         
 
         % calculate variance over the last 'varianceGen' generations
-        queue(qIndex)=fit_array_P(1,1);     % variance is on ik fitness only (ranking fitness depends on the current population, so it makes no sense to compare the rank of individuals from different generations)
-        qIndex=qIndex+1;                    % the queue is implemented as a static array
+        queue(qIndex) = fit_array_P(1,1);     % variance is on ik fitness only (ranking fitness depends on the current population, so it makes no sense to compare the rank of individuals from different generations)
+        qIndex=qIndex + 1;                    % the queue is implemented as a static array
         if qIndex>size(queue,2)             % when the index reaches the end of the array
             qIndex = 1;                     % goes back to 1
         end
@@ -98,7 +98,7 @@ function [best] = sea()
         
         % stop if the variance is 0.0000
         
-        if (round(variance,3) == 0) && (gen>gas.variance_generations)
+        if (round(variance,3) == 0) && (gen > gas.variance_generations)
             break;
         end
          
@@ -123,7 +123,7 @@ function [] = plotMatPool(pop,matPool)
     %figure;
     global gas; 
     hold on;
-    for i=1:1:gas.n_individuals
+    for i = 1:1:gas.n_individuals
         plot(pop(matPool(i),1),pop(matPool(i),2),'go');
     end
     plot(1,1,'r+');
@@ -133,8 +133,9 @@ function [pop] = initializeRandomPopulation()
     global op;
     global gas; 
     
-    pop = zeros(gas.n_individuals,2);
-    for i=1:1:gas.n_individuals
+    % population array is matrix of size (how many individuals) x (how many decision variables) for rosenbrock it is 2
+    pop = zeros(gas.n_individuals, 2);
+    for i = 1:1:gas.n_individuals
         pop(i,1) = (op.ub-op.lb)*rand + op.lb;
         pop(i,2) = (op.ub-op.lb)*rand + op.lb;
     end
@@ -146,7 +147,7 @@ function [fit_array] = evaluate(pop)
     s = size(pop,1);
     
     fit_array = zeros(s,3);
-    for i=1:1:s
+    for i = 1:1:s
         x1 = pop(i,1);
         x2 = pop(i,2);
         fit_array(i,gas.fIdx.fit) = 100.0 * (x2 - x1^2)^2 + (1 - x1)^2; % objective function
